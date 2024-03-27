@@ -1,0 +1,47 @@
+// Function to process the CSV file, using fs.createReadStream
+async function processCsvFile(filePath, connection) {
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(filePath)
+      .pipe(fastCsv.parse({ delimiter: ",", headers: false }))
+      .on("data", (data) => processData(data, connection))
+      .on("end", () => resolve())
+      .on("error", (err) => reject(err));
+  });
+}
+
+// Process records one by one and insert into the database
+exports.processData = async (data, connection) => {
+  const recordType = data[0];
+
+  if (recordType === "200") {
+    NMI = data[1]; //second value in the 200 record
+    intervalLength = parseInt(data[8], 10); //ninth value in the 200 record
+  } else if (recordType === "300" && NMI) {
+    const intervalDate = data[1]; // Extract interval date from 300 record
+
+    //Get all values Starting from index 2 (values 3 to 50 in the 300 record)
+    //The number of values provided must equal 1440 divided by the IntervalLength
+    const consumptionValues = data.slice(2, 2 + 1440 / intervalLength);
+    consumptionValues.forEach((value, index) => {
+      const timestamp = calculateTimestamp(intervalDate, index, intervalLength);
+      const consumption = parseFloat(value);
+
+      if (!isNaN(consumption) && consumption !== 0) {
+        const values = [NMI, timestamp, consumption];
+
+        connection.query(
+          queryManager.INSERT_METER_READINGS,
+          values,
+          (error, results, fields) => {
+            if (error) {
+              console.error("Error inserting data:", error);
+              return;
+            }
+            console.log("Data inserted successfully:");
+            // Close the connection when done
+          }
+        );
+      }
+    });
+  }
+};

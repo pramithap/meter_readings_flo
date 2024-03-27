@@ -1,0 +1,51 @@
+Multiple `300 records` belong to the `200 record` . 
+Of interest for this specific task are
+
+1. the NMI (second value in the `200 record` ‒ NEM1201009 in this example); 
+ ( NMI - National Metering Identifier)
+2. the interval length (ninth value in the 200 records ‒ 30 in this example); 
+3. the interval date (second value in the 300 records ‒ e.g. 20050301); 
+4. the interval values, which we call consumption (values 3 to 50 in the 300 records ‒ e.g. 0.461).
+
+100,NEM12,200506081149,UNITEDDP,NEMMCO
+200,NEM1201009,E1E2,1,E1,N1,01009,kWh,30,20050610
+300,20050301,0,0,0,0,0,0,0,0,0,0,0,0,0.461,0.810,0.568,1.234,1.353,1.507,1.344,1.773,0
+.848,1.271,0.895,1.327,1.013,1.793,0.988,0.985,0.876,0.555,0.760,0.938,0.566,0.512,0.9
+70,0.760,0.731,0.615,0.886,0.531,0.774,0.712,0.598,0.670,0.587,0.657,0.345,0.231,A,,,2
+0050310121004,20050310182204
+
+200,NEM1201009,E1E2,1,E1,N1,01009,kWh,30,20050610
+
+RecordIndicator,NMI,NMIConfiguration,RegisterID,NMISuffix,MDMDataStreamIdentifier,
+MeterSerialNumber,UOM,IntervalLength,NextScheduledReadDate
+200,VABD000163,E1Q1,1,E1,N1,METSER123,kWh,30,20040120
+
+IntervalLength - Time in minutes of each Interval period: 5, 15, or 30.
+
+300
+Interval metering data.
+The total amount of energy or other measured
+value for the Interval inclusive of any multiplier or
+scaling factor.
+The number of values provided must equal 1440
+divided by the IntervalLength. This is a repeating
+field with individual field values separated by
+comma delimiters.
+
+400 - This record is mandatory where the QualityFlag is ‘V’ in the 300 record or where the quality flag is
+‘A’ and reason codes 79, 89, and 61 are used.
+
+500 - This record is mandatory where a manual Meter Reading has been performed or attempted. 
+
+900 - This is the end of record indicator for the record set
+commencing with the previous 100 record.
+
+
+create table meter_readings (
+    id uuid default gen_random_uuid() not null,
+    "nmi" varchar(10) not null,     ---> second value in the `200 record`
+    "timestamp" timestamp not null,  ------> second value in the 300 records
+    "consumption" numeric not null, -----> values 3 to 50 in the 300 records 
+    constraint meter_readings_pk primary key (id),
+    constraint meter_readings_unique_consumption unique ("nmi", "timestamp")
+);
